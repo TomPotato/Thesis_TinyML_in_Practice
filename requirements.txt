@@ -1,0 +1,20 @@
+# Requirements for the TinyML in Practice project
+# Numerical computing
+numpy
+
+# Machine learning and neural network frameworks
+tensorflow
+keras
+
+# Data visualization
+matplotlib
+
+# Image processing and computer vision
+opencv-python
+h5py
+pyserial
+
+# Requirements for the ESP32-CAM firmware to be installed on Arduino IDE
+
+# ESP32 Board Package (Espressif Systems)
+# TensorFlowLite_ESP32 library
