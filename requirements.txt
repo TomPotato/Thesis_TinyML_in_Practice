@@ -15,6 +15,8 @@ h5py
 pyserial
 
 # Requirements for the ESP32-CAM firmware to be installed on Arduino IDE
+# the Espressif **esp32** board package version, 2.0.1 used in the thesis;
+# the TensorFlow Lite Micro Arduino library;
 
-# ESP32 Board Package (Espressif Systems)
-# TensorFlowLite_ESP32 library
+#Requirements for the Arduino Mega sketch on Arduino IDE
+# **TinyGPSPlus** library.

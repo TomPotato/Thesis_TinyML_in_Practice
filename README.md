@@ -20,7 +20,7 @@ The repository contains:
 - converters that build the dataset from public datasets (NYU Depth V2, COCO 2017);
 - training, 8-bit quantization and evaluation scripts;
 - the ESP32-CAM firmware, and a PC tool to stream frames from the board, collect labelled images and evaluate the model live;
-- the Arduino Mega firmware of the rover, and small test sketches for each sensor.
+- the Arduino Mega firmware of the rover.
 
 ## Repository Structure
 
@@ -67,12 +67,10 @@ thesis-project/
 
 ### Files and what they do
 
-<!-- TODO: adjust the folder column if your files are in different places. -->
-
 | File | Folder | Purpose |
 |---|---|---|
-| `nyu_to_dataset.py` | `code/preprocessing_scripts` | Converts the NYU Depth V2 labeled `.mat` into the four classes, labelling each frame from its depth map |
-| `coco_to_dataset.py` | `code/preprocessing_scripts` | Converts COCO 2017 bounding boxes into the four classes |
+| `nyu_preprocessing.py` | `code/preprocessing_scripts` | Converts the NYU Depth V2 labeled `.mat` into the four classes, labelling each frame from its depth map |
+| `coco_preprocessing.py` | `code/preprocessing_scripts` | Converts COCO 2017 bounding boxes into the four classes |
 | `Model_Training.py` | `code/ML_model` | Defines and trains the network (Keras) |
 | `Model_Quantizing.py` | `code/ML_model` | 8-bit post-training quantization, writes the `.tflite` file and `model.h` |
 | `test.py` | `code/model_testing` | Runs the int8 model on the PC on a folder, an image or a webcam |
@@ -108,7 +106,7 @@ For the firmware you also need the **Arduino IDE** with:
 
 To reproduce the experiments, follow these steps. The data folder with the converted dataset is available as `data.zip`; if you use it, you can skip steps 1 to 3.
 
-### 1. Download the public datasets
+### 1. Download and extract the public datasets
 
 - **COCO 2017**: the `train2017` and `val2017` images and `annotations_trainval2017.zip` from <https://cocodataset.org>.
 - **NYU Depth V2**: the *labeled* subset `nyu_depth_v2_labeled.mat` from <https://cs.nyu.edu/~fergus/datasets/nyu_depth_v2.html>.
@@ -116,9 +114,9 @@ To reproduce the experiments, follow these steps. The data folder with the conve
 ### 2. Convert the datasets to the four classes
 
 ```bash
-python nyu_to_dataset.py --mat nyu_depth_v2_labeled.mat --out_dir ./data_nyu --add_flips
+python nyu_preprocessing.py --mat nyu_depth_v2_labeled.mat --out_dir ./data_nyu --add_flips
 
-python coco_to_dataset.py --ann annotations/instances_train2017.json --images train2017 --out_dir ./data_coco --max_per_class 2000 --add_flips
+python coco_preprocessing.py --ann annotations/instances_train2017.json --images train2017 --out_dir ./data_coco --max_per_class 2000 --add_flips
 ```
 
 Both scripts write `train/` and `val/` folders and a `preview.png` contact sheet: look at it to check that the automatic labels are reasonable. All images are saved as $96 \times 96$ grayscale.
@@ -134,7 +132,7 @@ Images captured with the ESP32-CAM (see step 8) are added to the same class fold
 python Model_Training.py --data_dir data --epochs 40 --lr 1e-6 --out model/not_quantized/tiny_resnet_not_quantized.keras                                                          
 ```
 
-The best model is saved as `tiny_resnet_obstacle.keras`.
+The best model is saved as `tiny_resnet_not_quantized.keras`.
 
 ### 5. Quantize and convert
 
@@ -208,19 +206,19 @@ The classifier is a weak sensor, which is why the rover gives priority to the ul
 
 All the datasets used in this thesis are available for free under their own licences (check each one) and must be cited if used:
 
-- **COCO 2017**: annotations under CC BY 4.0; the images are subject to the Flickr terms of use. <https://cocodataset.org>
+- **COCO 2017**: annotations under CC-BY-4.0; the images are subject to the Flickr terms of use. <https://cocodataset.org>
 - **NYU Depth V2**: N. Silberman, P. Kohli, D. Hoiem, R. Fergus. <https://cs.nyu.edu/~fergus/datasets/nyu_depth_v2.html>
 
 `data.zip` contains the images converted to $96 \times 96$ grayscale.
 
 ## Reproducibility
 
-- **Python version:** 3.11.
-- **Package versions:** latest, see `requirements.txt` (run `pip freeze` in the environment used for the thesis).
-- **Random seeds:** the dataset scripts accept `--seed` (default 0). TODO: say whether the training seed is fixed; if not, the results change slightly between runs.
-- **Experimental configurations:** the thresholds used for labelling (1.0 m depth threshold, 4% minimum box area, 25% zone overlap), the training parameters of step 4 and the quantization settings (200 calibration images) are described in the thesis; TODO: confirm the calibration set used.
+- **Python version:** Python 3.11.
+- **Package versions:** the latest available at the time of the writing, see `requirements.txt` (run `pip freeze` in the environment used for the thesis).
+- **Random seeds:** the dataset scripts accept `--seed` (default 0).
+- **Experimental configurations:** the thresholds used for labelling (1.0 m depth threshold, 4% minimum box area, 25% zone overlap), the training parameters of step 4 and the quantization settings (data/val calibration images) are described in the thesis.
 - **Hardware used for training:** AMD Ryzen 7 7735HS laptop, CPU only (TensorFlow does not use the GPU on native Windows); about 15 to 20 minutes of training.
-- **Hardware of the rover:** ESP32-CAM (AI-Thinker, OV2640), Arduino Mega 2560, GPS module marked NEO-6M-0-001 with ceramic antenna, GY-521 (MPU-6050), 3 × HC-SR04, 2 reflective IR sensors with 20-slot discs, JDY-09 Bluetooth Low Energy module, Osoyoo motor driver, DC gear motors, 2 × 18650 cells.
+- **Hardware of the rover:** ESP32-CAM (AI-Thinker, OV2640), Arduino Mega 2560, GPS module marked NEO-6M-0-001 with ceramic antenna, GY-521 (MPU-6050), 3 × HC-SR04, 2 reflective IR sensors with 20-slot discs, JDY-09 Bluetooth Low Energy module, Osoyoo motor driver, 4x DC gear motors, 2 × 18650 cells.
 
 ## Citation
 
