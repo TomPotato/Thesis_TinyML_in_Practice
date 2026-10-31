@@ -36,14 +36,14 @@
   wheel, and keep the rover driving straight while it searches for its heading.
   They cannot tell forward from reverse: the direction comes from the command.
 
-  Classic Bluetooth modules (HC-05 / HC-06 / JDY-09) work with Android serial-terminal
+  Classic Bluetooth modules (HC-05 / HC-06) work with Android serial-terminal
   apps. iPhones need a BLE module (e.g. HM-10) and a BLE terminal app.
 
   HEADING (GY-521 gyro + GPS course)
       GY-521: SDA -> Mega pin 20, SCL -> Mega pin 21, VCC -> 5 V or 3.3 V (the
-      board has a regulator), GND, AD0 -> GND (I2C address 0x68). Mount it FLAT
-      (components facing up), fixed firmly to the frame, away from the motors.
-  The gyro measures how fast the rover turns and is integrated into a heading.
+      board has a regulator), GND, AD0 -> GND (I2C address 0x68). Can be mounted 
+      FLAT with components up or components down. 
+    The gyro measures how fast the rover turns and is integrated into a heading.
   It has no compass, so it does not know where north is: the first time the
   rover moves straight at MIN_COURSE_SPEED_MPS or more, the GPS "course over
   ground" gives it north, and every later GPS course keeps correcting the
@@ -80,10 +80,10 @@ double navErr = 0.0;
 
 #define TOO_CLOSE_CM         40
 #define ECHO_TIMEOUT_US      12000UL    // about 2 m; keeps each scan short
-#define SCAN_INTERVAL_MS     120
+#define SCAN_INTERVAL_MS     150
 
 #define ARRIVE_RADIUS_M      3.0        // GPS is only accurate to a few meters
-#define MAX_TARGET_DIST_M    50.0     // reject targets farther than this (typos)
+#define MAX_TARGET_DIST_M    5000.0     // reject targets farther than this (typos)
 #define BASE_SPEED           180        // 0-255
 #define TURN_SPEED           120
 #define TURN_GAIN            1.6        // PWM units per degree of heading error
@@ -93,8 +93,8 @@ double navErr = 0.0;
 #define ENC_L_PIN            2       // interrupt pins on the Mega: 2, 3, 18, 19, 20, 21
 #define ENC_R_PIN            3
 #define ENC_SLOTS            20      // slots on the disc = pulses per motor-shaft turn
-#define GEAR_RATIO           48.0    // motor-shaft turns per wheel turn
-#define WHEEL_DIAMETER_MM    72.0    
+#define GEAR_RATIO           48.0    // PLACEHOLDER (typical yellow TT motor): motor-shaft turns per wheel turn
+#define WHEEL_DIAMETER_MM    72.0    // PLACEHOLDER: measure your wheel
 #define METERS_PER_PULSE_OVERRIDE 0.0   // > 0: use this (from the hand calibration) instead
 #define ENC_MIN_PULSE_US     100     // ignore pulses closer together than this (noise)
 #define ENC_UPDATE_MS        200
@@ -104,16 +104,16 @@ double navErr = 0.0;
 #define TRIM_MAX             40.0
 
 #define USE_GYRO             1       // 1 = use the GY-521 (MPU-6050) for heading
-#define GYRO_SIGN            +1      // -1: board flat, components up. +1: upside down.
+#define GYRO_SIGN            +1       // -1: board flat, components up. +1: upside down.
 #define GYRO_LSB_PER_DPS     65.5    // sensitivity at +-500 deg/s
 #define GYRO_DEADBAND_DPS    0.15    // ignore tiny rates (noise) when standing still
 #define GYRO_CAL_SAMPLES     500
 #define GYRO_CAL_MAX_SPREAD  100     // max raw spread allowed during calibration (= rover still)
-#define FUSION_ALPHA         0.8     // share of each GPS-course error corrected per update
-#define MAX_FUSION_RATE_DPS  120.0   // GPS course lags while turning: skip corrections then
+#define FUSION_ALPHA         0.2     // share of each GPS-course error corrected per update
+#define MAX_FUSION_RATE_DPS  120.0    // GPS course lags while turning: skip corrections then
 #define PIVOT_ABOVE_DEG      15.0    // heading error above this: turn on the spot first
 
-#define GPS_FRESH_MS         1000
+#define GPS_FRESH_MS         3000
 #define CAMERA_FRESH_MS      1000
 #define CAMERA_TIMEOUT_MS    2000
 
@@ -131,7 +131,7 @@ TinyGPSPlus gps;
 const char* CLASS_NAMES[] = {"clear", "left_blocked", "center_blocked", "right_blocked"};
 
 const int trigPIN[] = {24, 28, 32};   // left, center, right
-const int echoPIN[] = {22, 24, 30};
+const int echoPIN[] = {22, 26, 30};
 long distCm[3] = {-1, -1, -1};        // -1 = no echo (nothing within ~2 m)
 
 int camClass = 0;
@@ -512,42 +512,28 @@ void say(const char* msg) {
 
 void printStatus(Print &out) {
   if (gps.location.isValid()) {
-    out.print("pos ");
-    out.print(gps.location.lat(), 6);
-    out.print(",");
-    out.print(gps.location.lng(), 6);
-    out.print(" sats ");
+    out.print(gps.location.lat(), 5);
+    out.print(',');
+    out.print(gps.location.lng(), 5);
+    out.print(" s");
     out.print(gps.satellites.value());
   } else {
-    out.print("no GPS fix (chars ");
-    out.print(gps.charsProcessed());
-    out.print(", valid sentences ");
-    out.print(gps.passedChecksum());
-    out.print(")");
+    out.print("noGPS");
   }
   double h;
   if (currentHeading(h)) {
-    out.print(" | heading ");
-    out.print(h, 0);
+    out.print(" h");
+    out.print((int)h);
   } else {
-    out.print(gyroOk ? " | heading unknown (drive straight once to align)" : " | heading unknown");
+    out.print(" h?");
   }
-#if USE_ENCODERS
-  out.print(" | L ");
-  out.print(speedL, 2);
-  out.print(" R ");
-  out.print(speedR, 2);
-  out.print(" m/s, odo ");
-  out.print(odometerMeters(), 2);
-  out.print(" m");
-#endif
   if (navigating) {
-    out.print(" | to target: ");
-    out.print(navDist, 1);
-    out.print(" m, bearing ");
-    out.print(navBearing, 0);
+    out.print(" d");
+    out.print((int)navDist);
+    out.print(" b");
+    out.print((int)navBearing);
   } else {
-    out.print(" | idle");
+    out.print(" idle");
   }
   out.println();
 }
@@ -590,7 +576,7 @@ void navigate() {
 
   // ---- Priority 2: camera ----
   bool camFresh = camTime != 0 && (millis() - camTime) < CAMERA_FRESH_MS;
-  if (USE_CAMERA && headingKnown && camFresh && camClass != 0) {
+  if (USE_CAMERA && camFresh && camClass != 0) {
     if (camClass == 1)      { navMode = "CAMERA: left blocked, arc right"; drive(BASE_SPEED, BASE_SPEED / 3); }
     else if (camClass == 3) { navMode = "CAMERA: right blocked, arc left"; drive(BASE_SPEED / 3, BASE_SPEED); }
     else {
@@ -736,6 +722,7 @@ void handleCommand(char* cmd) {
   if (strcasecmp(cmd, "DRY_RUN") == 0){
     DRY_RUN = (DRY_RUN) ? 0 : 1;
     (DRY_RUN) ? say("motors stopped until changed") : say("motors online");
+    Stop();
     return;
   }
   if (strcasecmp(cmd, "PRINT_EVERY") == 0){
