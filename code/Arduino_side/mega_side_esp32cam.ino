@@ -23,20 +23,18 @@
                              CENTER TRIG 28 / ECHO 26
                              RIGHT  TRIG 32 / ECHO 30
       Motors               : direction pins 40-43, speed (PWM) pins 6 and 5.
-                             The two SPEED pins MUST be PWM pins (Mega: 2-13,
-                             44-46); pins 38-43 cannot do PWM.
+                             The two SPEED pins MUST be PWM pins
       Wheel encoders       : left sensor OUT -> pin 2, right sensor OUT -> pin 3
                              (+5 V and GND from the Mega). Disc on the motor
                              shaft, one pulse per slot.
 
-  ENCODERS: set GEAR_RATIO and WHEEL_DIAMETER_MM below (the defaults are only
-  typical values). To calibrate by hand: send RESETODO, push the rover exactly
+  ENCODERS: set GEAR_RATIO and WHEEL_DIAMETER_MM below. 
+  To calibrate by hand: send RESETODO, push the rover exactly
   1.00 m, send ENC, then set METERS_PER_PULSE_OVERRIDE = 1.0 / (average of the
   two pulse counts). The encoders measure distance and speed, detect a stalled
   wheel, and keep the rover driving straight while it searches for its heading.
-  They cannot tell forward from reverse: the direction comes from the command.
 
-  Classic Bluetooth modules (HC-05 / HC-06) work with Android serial-terminal
+  Classic Bluetooth modules (HC-05 / HC-06 / HC-02) work with Android serial-terminal
   apps. iPhones need a BLE module (e.g. HM-10) and a BLE terminal app.
 
   HEADING (GY-521 gyro + GPS course)
@@ -84,8 +82,8 @@ double navErr = 0.0;
 
 #define ARRIVE_RADIUS_M      3.0        // GPS is only accurate to a few meters
 #define MAX_TARGET_DIST_M    5000.0     // reject targets farther than this (typos)
-#define BASE_SPEED           180        // 0-255
-#define TURN_SPEED           120
+#define BASE_SPEED           200        // 0-255
+#define TURN_SPEED           180
 #define TURN_GAIN            1.6        // PWM units per degree of heading error
 #define MIN_COURSE_SPEED_MPS 0.6
 
@@ -93,8 +91,8 @@ double navErr = 0.0;
 #define ENC_L_PIN            2       // interrupt pins on the Mega: 2, 3, 18, 19, 20, 21
 #define ENC_R_PIN            3
 #define ENC_SLOTS            20      // slots on the disc = pulses per motor-shaft turn
-#define GEAR_RATIO           48.0    // PLACEHOLDER (typical yellow TT motor): motor-shaft turns per wheel turn
-#define WHEEL_DIAMETER_MM    72.0    // PLACEHOLDER: measure your wheel
+#define GEAR_RATIO           48.0    
+#define WHEEL_DIAMETER_MM    72.0    
 #define METERS_PER_PULSE_OVERRIDE 0.0   // > 0: use this (from the hand calibration) instead
 #define ENC_MIN_PULSE_US     100     // ignore pulses closer together than this (noise)
 #define ENC_UPDATE_MS        200
@@ -538,15 +536,6 @@ void printStatus(Print &out) {
   out.println();
 }
 
-void printNavDebug() {
-  Serial.print("   mode: ");           Serial.print(navMode);
-  Serial.print(" | us L/C/R: ");       Serial.print(distCm[0]); Serial.print("/");
-                                       Serial.print(distCm[1]); Serial.print("/"); Serial.print(distCm[2]);
-  Serial.print(" | cam: ");            Serial.print(camClass);
-  Serial.print(" | gps speed: ");      Serial.print(gps.speed.mps(), 2);
-  Serial.print(" m/s | heading error: "); Serial.println(navErr, 0);
-}
-
 void navigate() {
   if (!navigating) { navMode = "idle"; Stop(); return; }
 
@@ -567,9 +556,13 @@ void navigate() {
     } else if (tooL) {
       navMode = "ULTRASONIC: left close, pivot right";
       drive(TURN_SPEED, -TURN_SPEED);
+      drive(TURN_SPEED,TURN_SPEED);
+      delay(500);
     } else {
       navMode = "ULTRASONIC: right close, pivot left";
       drive(-TURN_SPEED, TURN_SPEED);
+      drive(TURN_SPEED,TURN_SPEED);
+      delay(500);
     }
     return;
   }

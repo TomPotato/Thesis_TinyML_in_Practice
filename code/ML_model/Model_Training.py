@@ -186,7 +186,7 @@ def main():
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(args.out, save_best_only=True, monitor="val_accuracy"),
         tf.keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True, monitor="val_accuracy"),
-        tf.keras.callbacks.ReduceLROnPlateau(patience=6, factor=0.5, monitor="val_loss"),
+        tf.keras.callbacks.ReduceLROnPlateau(patience=4, factor=0.5, monitor="val_loss"),
     ]
 
     history = model.fit(train_ds, validation_data=val_ds, epochs=args.epochs, callbacks=callbacks)
